@@ -1,9 +1,19 @@
 pipeline{
 	agent {label 'windows'}	
+	environment{
+		NEXUS_VERSION="nexus3"
+		NEXUS_PROTOCOL="http"
+		NEXUS_URL="localhost:8081"
+		NEXUS_REPOSITORY="repo.orsys.com"
+		NEXUS_CREDENTIAL_ID="nexusCredential"
+		ARTIFACT_VERSION="${BUILD_NUMBER}"
+	}
+	
 	stages {
-	  stage('build') {
+	  stage('mvn build') {
 		steps {
 		  echo 'hello - building ... !'
+		  bat "mvn clean package"
 		}
 	  }
 	  stage('test') {
@@ -11,9 +21,42 @@ pipeline{
 		   echo 'hello - testing ... !'
 		}
 	  }	  
-	  stage('deploy') {
+	  stage('publish to nexus') {
 		steps {
 		   echo 'hello - Deploying ... !'
+		   script{
+				pom= readMavenPom file: "pom.xml";
+				
+				filesByGlob = findFiles(glob: "target/*, ${pom.packaging}");
+				
+				echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+				
+				artifactPath = ${filesByGlob[0].path};
+				
+				artifactExists = fileExists artifactPath;
+				
+				if(artifactExists){
+					echo "**** File : $artifactPath, groupe : ${pom.groupId}, packaginf :${pom.packaging}, versio: ${pom.version}";
+					
+						nexusArtifactUploader(: 
+							nexusversion: NEXUS_VERSION,
+							protocol: NEXUS_PROTOCOL,
+							nexusUrl: NEXUS_URL,
+							groupId: pom.groupId,
+							version: ARTIFACT_VERSION,
+							repository: NEXUS_REPOSITORY,
+							credentialsId: NEXUS_CREDENTIAL_ID,
+							artifacts: [
+									[artifactId: pom.artifactId, classifier: '', file: artifactPath, type: pom.packaging]
+							]
+							
+						);
+					}else{
+						error "***** error ******;
+					}
+				
+				}
+		   }
 		}
 	  }
 	  
