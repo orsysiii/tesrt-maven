@@ -1,0 +1,24 @@
+pipeline{
+	agent any	
+	stages {
+	  stage('build') {
+		steps {
+		  echo 'hello - building ... !'
+		}
+	  }
+
+	  stage('test') {
+		steps {
+		   echo 'hello - testing ... !'
+		}
+	  }
+
+	  stage('deploy') {
+		steps {
+		   echo 'hello - Deploying ... !'
+		}
+	  }
+
+	}
+
+}
